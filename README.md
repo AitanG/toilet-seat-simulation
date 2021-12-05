@@ -8,6 +8,10 @@ The observation that provided inspiration for this project was that a "lazy" pol
 
 Feel free to clone the repo to view the animations, evaluate policies for your specific setup, and/or add your own policy!
 
+## Example
+
+	./toilet_seat_simulation.py -m adam -f eve --policy lazy
+
 	Lazy policy
 	===========
 	Adam moves: 149
