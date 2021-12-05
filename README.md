@@ -11,6 +11,8 @@ Feel free to clone the repo to view the animations, evaluate policies for your s
 ## Example
 
 	./toilet_seat_simulation.py -m adam -f eve --policy lazy
+	
+Example output:
 
 	Lazy policy
 	===========
