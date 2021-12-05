@@ -13,6 +13,7 @@ FEMALE_SIGN_ASCII = []
 FEMALE_SIGN_ENTERING_ASCII = []
 
 ASCII_CACHE = {}
+stdscr = None
 
 
 def superimpose(frame1, frame2):
@@ -32,8 +33,10 @@ def show_frame(*args):
     '''
     Render a single frame of the simulation.
     '''
+    name, is_male, person_percent, lid_percent, n_moves = args
+
+    global ASCII_CACHE
     if args not in ASCII_CACHE:
-        name, is_male, person_percent, lid_percent = args
         frame = BLANK_FRAME
 
         # Add toilet
@@ -56,24 +59,25 @@ def show_frame(*args):
             else:
                 frame = superimpose(frame, FEMALE_SIGN_ASCII)
 
-        # Add name
+        # Add name (centered)
         name_frame = copy.deepcopy(BLANK_FRAME)
+        len_name = len(name)
+        name_start_col = (79 if person_percent == 0.5 else 64) - (len_name // 2)
         if person_percent:
-            name_start_col = 69 if person_percent == 0.5 else 54
-            for i, char in enumerate(name):
-                name_frame[26][name_start_col + i] = '='
-                name_frame[27][name_start_col + i] = char
-                name_frame[28][name_start_col + i] = '='
+            name_frame[28][name_start_col:(name_start_col + len_name)] = [c for c in name]
             frame = superimpose(frame, name_frame)
 
-        global ASCII_CACHE
-        ASCII_CACHE[args] = frame
+        ASCII_CACHE[args] = '\n'.join([''.join(row) for row in frame])
 
-    stdscr.addstr(0, 0, ASCII_CACHE[frame])
+    global stdscr
+    stdscr.addstr(0, 0, ASCII_CACHE[args])
+    stdscr.addstr(1, 1, '(Ctrl-C to exit)')
+    stdscr.addstr(3, 1, f'# moves so far: {n_moves}')
     stdscr.refresh()
 
 
-def show_operation(name, is_male, seat_currently_up, needs_seat_up, leaves_seat_down=False):
+def show_operation(name, is_male, seat_currently_up, needs_seat_up,
+                   n_moves, leaves_seat_down=False):
     '''
     Render a sequence of frames to simulate one operation.
     '''
@@ -95,26 +99,35 @@ def show_operation(name, is_male, seat_currently_up, needs_seat_up, leaves_seat_
             lid_percents[1] = 0
             lid_percents[2] = 0
 
-    show_frame(name, is_male, person_percent=0.5, lid_percent=lid_percents[0])
-    show_frame(name, is_male, person_percent=1, lid_percent=lid_percents[0])
-    show_frame(name, is_male, person_percent=1, lid_percent=lid_percents[1])
-    show_frame(name, is_male, person_percent=1, lid_percent=lid_percents[2])
+    show_frame(name, is_male, 0.5, lid_percents[0], n_moves)
+    time.sleep(0.1)
+    show_frame(name, is_male, 1, lid_percents[0], n_moves)
+    time.sleep(0.1)
+    show_frame(name, is_male, 1, lid_percents[1], n_moves)
+    time.sleep(0.1)
+    show_frame(name, is_male, 1, lid_percents[2], n_moves)
+    time.sleep(0.3)
 
     if needs_seat_up and leaves_seat_down:
-        show_frame(name, is_male, person_percent=1, lid_percent=0.5)
-        show_frame(name, is_male, person_percent=1, lid_percent=0)
-        show_frame(name, is_male, person_percent=0.5, lid_percent=0)
-        show_frame(name, is_male, person_percent=0, lid_percent=0)
+        show_frame(name, is_male, 1, 0.5, n_moves)
+        time.sleep(0.1)
+        show_frame(name, is_male, 1, 0, n_moves)
+        time.sleep(0.1)
+        show_frame(name, is_male, 0.5, 0, n_moves)
+        time.sleep(0.1)
+        show_frame(name, is_male, 0, 0, n_moves)
     else:
-        show_frame(name, is_male, person_percent=0.5, lid_percent=lid_percents[2])
-        show_frame(name, is_male, person_percent=0, lid_percent=lid_percents[2])
+        show_frame(name, is_male, 0.5, lid_percents[2], n_moves)
+        time.sleep(0.1)
+        show_frame(name, is_male, 0, lid_percents[2], n_moves)
 
+    time.sleep(0.3)
 
 def load_file(file):
     '''
     Convert ASCII art file into a 2D array of chars.
     '''
-    return [[c for c in line.strip()] for line in file.read().split('\n')]
+    return [[c for c in line] for line in file.read().split('\n')]
 
 
 def set_up():
@@ -138,6 +151,7 @@ def set_up():
     with open('ascii-art/female-sign-entering-ascii.txt', 'r') as f:
         FEMALE_SIGN_ENTERING_ASCII = load_file(f)
 
+    global stdscr
     stdscr = curses.initscr()
     curses.noecho()
     curses.cbreak()
